@@ -4,11 +4,16 @@ var url = require('url');
 
 var AWS = require('aws-sdk');
 const Influx = require('influxdb-nodejs');
+var prometheus = require('prom-client');
 
 var config = require('./hyperflowMonitoringEcsPlugin.config.js');
 
+var prometheusPushGateway = new prometheus.Pushgateway(config.prometheusPushGatewaway);
+
 var MonitoringEcsPlugin = function () {
 };
+
+var prometheusMetrics = {};
 
 MonitoringEcsPlugin.prototype.storeEcsData = function()
 {
@@ -31,6 +36,10 @@ MonitoringEcsPlugin.prototype.writeDataToDatabase=function(metric, data)
     .catch(console.error);
 }
 
+MonitoringEcsPlugin.prototype.writeToPrometheus = function(metric, value, labels) {
+    metric.set({wfId: that.getWfId(), hfId: that.getHfId(), ...labels}, value);
+    prometheusPushGateway.push({jobName: 'hyperflow-ecs-monitoring-plugin'}, () => {});
+}
 
 MonitoringEcsPlugin.prototype.getEcsData = function()
 {
@@ -51,6 +60,14 @@ MonitoringEcsPlugin.prototype.getEcsData = function()
           containerCount=data.containerInstanceArns.length;
 
           that.writeDataToDatabase("hyperflow_ecs_monitor_container",{containerInstanceCount:containerCount})
+
+          prometheusMetrics.hyperflow_ecs_monitor_container = prometheusMetrics.hyperflow_ecs_monitor_container ||
+              new prometheus.Gauge({
+                  name: 'hyperflow_ecs_monitor_container',
+                  help: 'containerInstanceCount',
+                  labelNames: ['wfId', 'hfId']
+              });
+          that.writeToPrometheus(prometheusMetrics.hyperflow_ecs_monitor_container, containerCount);
         }
     });
 
@@ -60,6 +77,14 @@ MonitoringEcsPlugin.prototype.getEcsData = function()
            taskCount=data.taskArns.length;
 
           that.writeDataToDatabase("hyperflow_ecs_monitor_tasks",{tasksCount: taskCount})
+
+          prometheusMetrics.hyperflow_ecs_monitor_tasks = prometheusMetrics.hyperflow_ecs_monitor_tasks ||
+              new prometheus.Gauge({
+                  name: 'hyperflow_ecs_monitor_tasks',
+                  help: 'tasksCount',
+                  labelNames: ['wfId', 'hfId']
+              });
+          that.writeToPrometheus(prometheusMetrics.hyperflow_ecs_monitor_tasks, taskCount);
         }
     });
 
@@ -69,6 +94,14 @@ MonitoringEcsPlugin.prototype.getEcsData = function()
           AlarmLowValue = data.MetricAlarms[0].StateValue;
           AlarmHightValue = data.MetricAlarms[1].StateValue;
           that.writeDataToDatabase("hyperflow_ecs_monitor_alarms",{alarmLowValue: AlarmLowValue, alarmHightValue:AlarmHightValue});
+
+          prometheusMetrics.hyperflow_ecs_monitor_alarms = prometheusMetrics.hyperflow_ecs_monitor_alarms ||
+              new prometheus.Gauge({
+                  name: 'hyperflow_ecs_monitor_alarms',
+                  help: 'alarms',
+                  labelNames: ['wfId', 'hfId', 'alarmLowValue', 'alarmHighValue']
+              });
+          that.writeToPrometheus(prometheusMetrics.hyperflow_ecs_monitor_alarms, 0, {alarmLowValue: AlarmLowValue, alarmHighValue: AlarmHightValue});
         }
     });
 
@@ -108,6 +141,14 @@ MonitoringEcsPlugin.prototype.getEcsData = function()
             var value = data.Datapoints[data.Datapoints.length-1].Average
             console.log(data.Datapoints[data.Datapoints.length-1]);   
             that.writeDataToDatabase("hyperflow_cluster_cpu",{ precentageCPU:  value});
+
+            prometheusMetrics.hyperflow_cluster_cpu = prometheusMetrics.hyperflow_cluster_cpu ||
+                new prometheus.Gauge({
+                    name: 'hyperflow_cluster_cpu',
+                    help: 'percentageCPU',
+                    labelNames: ['wfId', 'hfId'],
+                });
+            that.writeToPrometheus(prometheusMetrics.hyperflow_cluster_cpu, value);
         }
       });
 
@@ -143,6 +184,14 @@ MonitoringEcsPlugin.prototype.getEcsData = function()
             var value = data.Datapoints[data.Datapoints.length-1].Average
             console.log(data.Datapoints[data.Datapoints.length-1]);   
             that.writeDataToDatabase("hyperflow_worker_cpu",{ precentageCPU:  value});
+
+            prometheusMetrics.hyperflow_worker_cpu = prometheusMetrics.hyperflow_worker_cpu ||
+                new prometheus.Gauge({
+                    name: 'hyperflow_worker_cpu',
+                    help: 'percentageCPU',
+                    labelNames: ['wfId', 'hfId'],
+                });
+            that.writeToPrometheus(prometheusMetrics.hyperflow_worker_cpu, value);
         }
       });
 
@@ -180,6 +229,14 @@ MonitoringEcsPlugin.prototype.getEcsData = function()
             //var time =  new Date(data.Datapoints[data.Datapoints.length-1].Timestamp)
             console.log(data.Datapoints[data.Datapoints.length-1]);   
             that.writeDataToDatabase("hyperflow_master_cpu",{ precentageCPU:  value});
+
+            prometheusMetrics.hyperflow_master_cpu = prometheusMetrics.hyperflow_master_cpu ||
+                new prometheus.Gauge({
+                    name: 'hyperflow_master_cpu',
+                    help: 'percentageCPU',
+                    labelNames: ['wfId', 'hfId'],
+                });
+            that.writeToPrometheus(prometheusMetrics.hyperflow_master_cpu, value);
         }
       });
 
@@ -211,6 +268,14 @@ MonitoringEcsPlugin.prototype.getEcsData = function()
             var value = data.Datapoints[data.Datapoints.length-1].Average
             console.log(data.Datapoints[data.Datapoints.length-1]);   
             that.writeDataToDatabase("hyperflow_cluster_memory",{ precentageCPU:  value});
+
+            prometheusMetrics.hyperflow_cluster_memory = prometheusMetrics.hyperflow_cluster_memory ||
+                new prometheus.Gauge({
+                    name: 'hyperflow_cluster_memory',
+                    help: 'percentage memory',
+                    labelNames: ['wfId', 'hfId'],
+                });
+            that.writeToPrometheus(prometheusMetrics.hyperflow_cluster_memory, value);
         }
       });
 
@@ -246,6 +311,14 @@ MonitoringEcsPlugin.prototype.getEcsData = function()
             var value = data.Datapoints[data.Datapoints.length-1].Average
             console.log(data.Datapoints[data.Datapoints.length-1]);   
             that.writeDataToDatabase("hyperflow_worker_memory",{ precentageCPU:  value});
+
+            prometheusMetrics.hyperflow_worker_memory = prometheusMetrics.hyperflow_worker_memory ||
+                new prometheus.Gauge({
+                    name: 'hyperflow_worker_memory',
+                    help: 'percentage memory',
+                    labelNames: ['wfId', 'hfId'],
+                });
+            that.writeToPrometheus(prometheusMetrics.hyperflow_worker_memory, value);
         }
       });
 
@@ -283,6 +356,14 @@ MonitoringEcsPlugin.prototype.getEcsData = function()
             //var time =  new Date(data.Datapoints[data.Datapoints.length-1].Timestamp)
             console.log(data.Datapoints[data.Datapoints.length-1]);   
             that.writeDataToDatabase("hyperflow_master_memory",{ precentageCPU:  value});
+
+            prometheusMetrics.hyperflow_master_memory = prometheusMetrics.hyperflow_master_memory ||
+                new prometheus.Gauge({
+                    name: 'hyperflow_master_memory',
+                    help: 'percentage memory',
+                    labelNames: ['wfId', 'hfId'],
+                });
+            that.writeToPrometheus(prometheusMetrics.hyperflow_master_memory, value);
         }
       });
 }

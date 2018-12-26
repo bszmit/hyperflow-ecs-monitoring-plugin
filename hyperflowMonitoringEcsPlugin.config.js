@@ -1,3 +1,4 @@
+var PROMETHEUS_PUSHGATEWAY = process.env.PROMETHEUS_PUSHGATEWAY ? process.env.PROMETHEUS_PUSHGATEWAY : 'http://localhost:9091';
 var METRIC_COLLECTOR = process.env.METRIC_COLLECTOR ? process.env.METRIC_COLLECTOR : 'localhost:9002';
 var METRIC_COLLECTOR_TYPE = process.env.METRIC_COLLECTOR_TYPE ? process.env.METRIC_COLLECTOR_TYPE : 'visor';
 var SERVER_NAME = process.env.SERVER_NAME ? process.env.SERVER_NAME : 'HyperFlow';
@@ -11,6 +12,7 @@ var AWS_REGION = process.env.AWS_REGION ? process.env.AWS_REGION : 'us-east-1';
 var CLUSTER_NAME = process.env.CLUSTER_NAME ? process.env.CLUSTER_NAME :  'ecs_test_cluster_hyperflow';
 
 module.exports = {
+    prometheusPushGatewaway: PROMETHEUS_PUSHGATEWAY,
     metricCollector: METRIC_COLLECTOR,
     metricCollectorType: METRIC_COLLECTOR_TYPE,
     serverName: SERVER_NAME,

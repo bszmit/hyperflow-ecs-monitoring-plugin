@@ -18,6 +18,7 @@
   "license": "MIT",
   "dependencies": {
     "aws-sdk": "2.247.1",
-    "influxdb-nodejs":"2.7.6"
+    "influxdb-nodejs": "2.7.6",
+    "prom-client": "^11.2.1"
   }
 }
